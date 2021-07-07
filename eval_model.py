@@ -4,32 +4,44 @@ from gensim.models import Word2Vec, KeyedVectors
 import sys
 import csv
 import os
+import inspect
+# Usage: python eval_model.py ../test/aozora_week210625.kv.bin
 
-# Usage: python eval_model.py ../test/aozora_week210625.kv.bin 
-
-p=print
 if len(sys.argv) != 2:
   raise ValueError('arg arity is wrong, expect 1, got {}'.format(len(sys.argv)-1))
-
 mname = sys.argv[1]
+
+l=open(mname.split('/')[-1]+'.log', 'w')
+def p(*args):
+  print(*args, file=l)
+  print(*args)
+
 p('loading model: ', mname)
 
 if not os.path.exists(mname):
   raise FileExistsError(mname)
 
 try:
-  model = Word2Vec.load(mname)
-except Exception:
-  pass
+  p('[1]Word2Vec.load')
+  model = Word2Vec.load(mname).wv
+except Exception as e:
+  p('=> failed:', e)
+  p(''.join([i[4][0]
+    for i in inspect.getinnerframes(e.__traceback__)]))
+  input('[OK]')
 try:
-  model = KeyedVectors.load_word2vec_format(mname, unicode_errors='ignore')
-except Exception:
-  pass
-try:
+  p('[2]KeyedVectors.load2vec_format(binary=False)')
+  model = KeyedVectors.load_word2vec_format(mname, binary=False, unicode_errors='ignore')
+except Exception as e:
+  p('=> failed:', e)
+  p(''.join([i[4][0]
+    for i in inspect.getinnerframes(e.__traceback__)]))
+  input('[OK]')
+  p('[3]KeyedVectors.load2vec_format(binary=True)')
   model = KeyedVectors.load_word2vec_format(mname, binary=True, unicode_errors='ignore')
-except Exception:
-  raise ValueError('cannot load')
+
 p('model:', model)
+p('vocab size:', len(model.index_to_key))
 
 r=csv.reader(open('color_attribute_score_vocab.csv', 'r'))
 next(r) #header
